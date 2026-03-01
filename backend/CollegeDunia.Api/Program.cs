@@ -2,6 +2,7 @@ using CollegeDunia.Api.Contracts;
 using CollegeDunia.Api.Data;
 using CollegeDunia.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace CollegeDunia.Api;
 
@@ -9,6 +10,9 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        // Render containers can hit inotify limits when config reload watchers are enabled.
+        Environment.SetEnvironmentVariable("DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE", "false");
+
         var builder = WebApplication.CreateBuilder(args) ;
 
         var dbProvider = (builder.Configuration["DatabaseProvider"] ?? "sqlite").ToLowerInvariant();
@@ -16,7 +20,7 @@ public class Program
         {
             var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection")
                 ?? "Host=localhost;Port=5432;Database=collegedunia_mvp;Username=postgres;Password=postgres";
-            builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(postgresConnection));
+            builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(NormalizePostgresConnection(postgresConnection)));
         }
         else
         {
@@ -152,5 +156,31 @@ public class Program
         });
 
         await app.RunAsync();
+    }
+
+    private static string NormalizePostgresConnection(string connection)
+    {
+        if (!connection.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) &&
+            !connection.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        {
+            return connection;
+        }
+
+        var uri = new Uri(connection);
+        var userInfo = uri.UserInfo.Split(':', 2, StringSplitOptions.TrimEntries);
+        var username = Uri.UnescapeDataString(userInfo[0]);
+        var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
+
+        var builder = new NpgsqlConnectionStringBuilder
+        {
+            Host = uri.Host,
+            Port = uri.Port > 0 ? uri.Port : 5432,
+            Database = uri.AbsolutePath.Trim('/'),
+            Username = username,
+            Password = password,
+            SslMode = SslMode.Require
+        };
+
+        return builder.ConnectionString;
     }
 }
