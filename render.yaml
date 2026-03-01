@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: collegedunia-api
+    runtime: dotnet
+    autoDeploy: true
+    buildCommand: dotnet publish backend/CollegeDunia.Api/CollegeDunia.Api.csproj -c Release -o ./publish
+    startCommand: dotnet ./publish/CollegeDunia.Api.dll --urls http://0.0.0.0:$PORT
+    envVars:
+      - key: DatabaseProvider
+        value: postgres
+      - key: ConnectionStrings__PostgresConnection
+        fromDatabase:
+          name: collegedunia-db
+          property: connectionString
+      - key: FrontendUrl
+        value: https://your-vercel-project.vercel.app
+      - key: AdminApiKey
+        generateValue: true
+
+databases:
+  - name: collegedunia-db
+    databaseName: collegedunia_mvp
+    user: postgres

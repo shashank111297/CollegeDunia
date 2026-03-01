@@ -43,6 +43,18 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## Deploy on Render (backend + Postgres)
+
+This repo includes `render.yaml` for Render Blueprint deployment.
+
+1. Push latest code to GitHub (including `render.yaml`).
+2. In Render dashboard, click `New` -> `Blueprint`.
+3. Select this repo and branch, then apply blueprint.
+4. Render will create:
+   - `collegedunia-api` (web service)
+   - `collegedunia-db` (PostgreSQL)
+5. After frontend deployment on Vercel, update backend env var `FrontendUrl` in Render to your exact Vercel URL and redeploy.
+
 ## Optional: switch to SQLite later
 
 Set:
