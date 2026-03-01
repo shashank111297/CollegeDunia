@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Node
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# .NET
+**/bin
+**/obj
+
+# Env
+.env
+frontend/.env.local
+
+# Logs
+*.log
