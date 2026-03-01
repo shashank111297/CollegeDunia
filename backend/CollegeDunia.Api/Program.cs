@@ -32,8 +32,42 @@ public class Program
         {
             options.AddPolicy("frontend", policy =>
             {
-                var allowedOrigin = builder.Configuration["FrontendUrl"] ?? "http://localhost:3000";
-                policy.WithOrigins(allowedOrigin).AllowAnyHeader().AllowAnyMethod();
+                var configured = builder.Configuration["FrontendUrls"] ?? builder.Configuration["FrontendUrl"] ?? "http://localhost:3000";
+                var allowedOrigins = configured
+                    .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var allowVercelPreview = bool.TryParse(builder.Configuration["AllowVercelPreviewOrigins"], out var parsed)
+                    ? parsed
+                    : true;
+
+                policy
+                    .SetIsOriginAllowed(origin =>
+                    {
+                        if (allowedOrigins.Contains(origin))
+                        {
+                            return true;
+                        }
+
+                        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                        {
+                            return false;
+                        }
+
+                        if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                            uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+
+                        if (allowVercelPreview && uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    })
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
             });
         });
 

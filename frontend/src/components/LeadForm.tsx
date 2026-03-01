@@ -48,15 +48,24 @@ export function LeadForm({ courses }: LeadFormProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Unable to submit lead.");
+        let errorMessage = "Unable to submit lead.";
+        try {
+          const payload = (await response.json()) as { message?: string };
+          if (payload.message) {
+            errorMessage = payload.message;
+          }
+        } catch {
+          // Ignore parse failures and use fallback message.
+        }
+        throw new Error(errorMessage);
       }
 
       setForm(initialState);
       setStatus("success");
       setMessage("Thanks. A counselor will contact you shortly.");
-    } catch {
+    } catch (error) {
       setStatus("error");
-      setMessage("Submission failed. Please try again.");
+      setMessage(error instanceof Error ? error.message : "Submission failed. Please try again.");
     }
   };
 
